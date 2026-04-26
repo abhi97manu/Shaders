@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import {
   AmbientLight,
   BoxGeometry,
@@ -19,13 +19,18 @@ import {
 } from 'three';
 import vertexShader from './shaders/cube.vert.glsl?raw';
 import fragmentShader from './shaders/cube.frag.glsl?raw';
-
+import Slider from './Components/GUI/Slider';
+import contextStore from './Context/contextStore'
+ 
 export default function App() {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const pointLightRef = useRef<PointLight | null>(null);
   const lightMarkerRef = useRef<Mesh | null>(null);
   const cubeMaterialRef = useRef<ShaderMaterial | null>(null);
   const [isPointLightOn, setIsPointLightOn] = useState(true);
+
+  const {randomValue} = useContext(contextStore) 
+
 
   useEffect(() => {
     const intensity = isPointLightOn ? 9 : 0;
@@ -71,6 +76,7 @@ export default function App() {
 
     const uniforms = {
       uTime: { value: 0 },
+      uPos : {value : 0},
       uResolution: { value: new Vector2(mount.clientWidth, mount.clientHeight) },
       uLightPosition: { value: new Vector3().copy(pointLight.position) },
       uLightPower: { value: isPointLightOn ? 1 : 0 },
@@ -89,6 +95,20 @@ export default function App() {
     cube.position.y = 0.9;
     scene.add(cube);
     cubeMaterialRef.current = cube.material as ShaderMaterial;
+
+    const sphere = new Mesh(
+      new SphereGeometry(0.4,64,64),
+      new ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms,
+      })
+    )
+    sphere.position.set(2, 1.2, 0);
+    scene.add(sphere)
+    
+    
+
 
     const plane = new Mesh(
       new PlaneGeometry(9, 9),
@@ -128,7 +148,9 @@ export default function App() {
 
     const animate = () => {
       const elapsed = clock.getElapsedTime();
-
+      cube.rotation.y += 0.005; 
+      sphere.rotation.y += 0.005; 
+      
       lightMarker.position.copy(pointLight.position);
       uniforms.uLightPosition.value.copy(pointLight.position);
       uniforms.uTime.value = elapsed;
@@ -157,6 +179,12 @@ export default function App() {
     };
   }, []);
 
+  useEffect(()=>{
+    if(cubeMaterialRef.current){
+      cubeMaterialRef.current.uniforms.uPos.value = randomValue
+    }
+  },[randomValue])
+
   return (
     <main className="app-shell">
       <section className="scene-panel" ref={mountRef} aria-label="Animated shader cube scene" />
@@ -172,6 +200,7 @@ export default function App() {
             aria-label="Toggle point light"
           />
         </label>
+        <Slider/>
       </div>
     </main>
   );
