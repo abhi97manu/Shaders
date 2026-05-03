@@ -16,7 +16,9 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
+  TextureLoader,
 } from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import vertexShader from './shaders/cube.vert.glsl?raw';
 import fragmentShader from './shaders/cube.frag.glsl?raw';
 import Slider from './Components/GUI/Slider';
@@ -29,8 +31,13 @@ export default function App() {
   const cubeMaterialRef = useRef<ShaderMaterial | null>(null);
   const [isPointLightOn, setIsPointLightOn] = useState(true);
 
-  const {randomValue} = useContext(contextStore) 
+  const context = useContext(contextStore);
+  if (!context) {
+    throw new Error('ContextStore is not available');
+  }
 
+  const {randomValue} = context
+  const hMapTexture = new TextureLoader().load('./hmap.png');
 
   useEffect(() => {
     const intensity = isPointLightOn ? 9 : 0;
@@ -66,11 +73,16 @@ export default function App() {
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(renderer.domElement);
 
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.8, 0);
+    controls.update();
+
     scene.add(new AmbientLight('#a14848', 0.16));
 
     // The point light's intensity is set to 9 when on to create a strong lighting effect, and 0 when off to effectively disable it. The light's power is controlled via a uniform in the shader, allowing for smooth transitions in the cube's appearance based on the light's state.
     const pointLight = new PointLight('#ffcf66', isPointLightOn ? 9 : 0, 12, 1.4);
-    pointLight.position.set(0, 4.2, 0);
+    pointLight.position.set(0, 3.2, 0);
     scene.add(pointLight);
     pointLightRef.current = pointLight;
 
@@ -82,6 +94,7 @@ export default function App() {
       uLightPower: { value: isPointLightOn ? 1 : 0 },
       uBaseColor: { value: new Color('#5c4374') },
       uAccentColor: { value: new Color('#b68b2d') },
+      uTexture : {value : hMapTexture}
     };
 
     const cube = new Mesh(
@@ -90,14 +103,15 @@ export default function App() {
         vertexShader,
         fragmentShader,
         uniforms,
+      
       }),
     );
     cube.position.y = 0.9;
-    scene.add(cube);
+  //  scene.add(cube);
     cubeMaterialRef.current = cube.material as ShaderMaterial;
 
     const sphere = new Mesh(
-      new SphereGeometry(0.4,64,64),
+      new SphereGeometry(0.4,256,256),
       new ShaderMaterial({
         vertexShader,
         fragmentShader,
@@ -105,17 +119,23 @@ export default function App() {
       })
     )
     sphere.position.set(2, 1.2, 0);
-    scene.add(sphere)
+    //scene.add(sphere)
     
     
 
 
     const plane = new Mesh(
-      new PlaneGeometry(9, 9),
-      new MeshStandardMaterial({
-        color: '#4d515a',
-        roughness: 0.72,
-        metalness: 0.05,
+      new PlaneGeometry(9, 9, 598,598),
+      // new MeshStandardMaterial({
+      //   color: '#4d515a',
+      //   roughness: 0.72,
+      //   metalness: 0.05,
+      // }),
+      new ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms,
+        
       }),
     );
     plane.rotation.x = -Math.PI / 2;
@@ -154,6 +174,7 @@ export default function App() {
       lightMarker.position.copy(pointLight.position);
       uniforms.uLightPosition.value.copy(pointLight.position);
       uniforms.uTime.value = elapsed;
+      controls.update();
 
       renderer.render(scene, camera);
       animationFrame = requestAnimationFrame(animate);
@@ -166,11 +187,15 @@ export default function App() {
       cancelAnimationFrame(animationFrame);
       window.removeEventListener('resize', resize);
       cube.geometry.dispose();
+      sphere.geometry.dispose();
       plane.geometry.dispose();
       lightMarker.geometry.dispose();
       (cube.material as ShaderMaterial).dispose();
-      (plane.material as MeshStandardMaterial).dispose();
+      (sphere.material as ShaderMaterial).dispose();
+      (plane.material as ShaderMaterial).dispose();
       (lightMarker.material as MeshBasicMaterial).dispose();
+      hMapTexture.dispose();
+      controls.dispose();
       pointLightRef.current = null;
       lightMarkerRef.current = null;
       cubeMaterialRef.current = null;

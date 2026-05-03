@@ -5,6 +5,7 @@ uniform float uLightPower;
 uniform vec3 uBaseColor;
 uniform vec3 uAccentColor;
 uniform float uPos;
+uniform sampler2D uTexture;
 
 
 varying vec2 vUv;
@@ -12,13 +13,14 @@ varying vec3 vNormal;
 varying vec3 vPosition;
 
 void main() {
+ 
   vec3 lightDirection = normalize(uLightPosition - vPosition);
- 
+  vec4 texture = texture2D(uTexture,vUv);
   float diffuse = max(dot(normalize(vNormal), lightDirection), 0.0);
-  vec3 color = mix(uBaseColor , vec3(diffuse, uPos,sin(uTime) ), 0.2);
+  
 
  
 
-    gl_FragColor = vec4(vec3(diffuse,diffuse,diffuse), 1.0);
+    gl_FragColor = vec4( 1.0,1.0,1.0 , 1.0) * texture ;
   
 }

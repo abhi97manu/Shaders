@@ -1,5 +1,6 @@
 uniform float uTime;
 uniform float uPos;
+uniform sampler2D uTexture;
 
 varying vec2 vUv;
 varying vec3 vNormal;
@@ -11,16 +12,9 @@ float random(vec3 p) {
 
 void main() {
   vUv = uv;
+ float height = texture2D(uTexture,uv).r;
+ vec3 newPosition = position + normal * - height  * uPos;
 
-  vec3 animatedPosition = position;
-
-  float mask = step(0.8, ((cos(dot(position , vec3(50, 10, 10))))));
-  animatedPosition +=  normal * uPos * 0.2 * mask *sin(uTime);
-  
-  vec4 worldPosition = modelMatrix * vec4(animatedPosition, 1.0) ;
-
-  vNormal = normalize(mat3(modelMatrix) * normal);
-  vPosition = worldPosition.xyz ;
-
-  gl_Position = projectionMatrix * viewMatrix * worldPosition;
+ 
+  gl_Position =  projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 }
